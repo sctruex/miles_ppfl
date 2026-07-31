@@ -1,5 +1,5 @@
-from non_tff import run_non_tff
-from plot_utils.plot import plot_experimental_results, col_to_float_lst
+from fl_exp import run_fl_exp
+from plot_utils.plot import plot_experimental_results
 from experimental_arguments import ExperimentalArguments
 import sys
 import os
@@ -9,8 +9,6 @@ import gc
 from ray.util.multiprocessing import Pool
 import tensorflow as tf
 import numpy as np
-from overleaf import read_in_results
-
 
 def redirect_output(debug: bool, dataset_name: str, exp_var_map: dict) -> None:
 
@@ -48,7 +46,7 @@ def redirect_and_run(exp_var_map, exp_args: ExperimentalArguments, seed: int
     # set SEEDS for tf and np
     tf.random.set_seed(seed)
 
-    result_row = run_non_tff(**(exp_args.get_full_args(seed)))
+    result_row = run_fl_exp(**(exp_args.get_full_args(seed)))
     gc.collect()
     return result_row
 
@@ -128,14 +126,6 @@ def plot_exp(exp_args: ExperimentalArguments, results_df: pd.DataFrame,
                               exp_args.get_collected_metrics())
 
 
-def get_existing(existing: str = "", pattern: str = ".csv", converters: dict = {}):
-    if existing == "":
-        return None
-    return read_in_results(results_loc=existing,
-                           pattern=pattern,
-                           converters=converters)
-
-
 def multi_main(n_processes: int = 40, suffix: str = "", existing: str = "", pattern: str = ".csv") -> None:
     pool = Pool(processes=n_processes)
     results = []
@@ -147,51 +137,27 @@ def multi_main(n_processes: int = 40, suffix: str = "", existing: str = "", patt
     rng = np.random.default_rng(seed=seed if seed != 0 else None)
     seeds = rng.integers(2**32, size=exp_args.num_runs)
 
-    df = get_existing(existing=existing,
-                      pattern=pattern,
-                      converters={
-                          'sparse_categorical_crossentropy': col_to_float_lst,
-                          'sparse_categorical_accuracy': col_to_float_lst,
-                          'reject_metrics': col_to_float_lst
-                      })
-    is_existing = False if df is None else True
     rows = []
-
     for exp_val_settings in experimental_combos:
         exp_var_map, exp_args = update_exp_args(
             exp_val_settings, exp_var_keys, exp_var_map, exp_args)
         for run in range(exp_args.num_runs):
             exp_var_map["run#"] = run + 1
-            if is_existing:
-                exp_df = df[df["run#"] == run+1]
-                for key, val in zip(exp_var_keys, exp_val_settings):
-                    exp_df = exp_df[exp_df[key] == val]
-            if not is_existing or len(exp_df) == 0:
-                res = pool.apply_async(
-                    redirect_and_run, (exp_var_map, exp_args, seeds[run]))
-                results.append(res)
-            else:
-                print(
-                    f"already have results for {dict(zip(exp_var_keys, exp_val_settings))}")
-                rows.append(exp_df)
+            res = pool.apply_async(redirect_and_run, (exp_var_map, exp_args, seeds[run]))
+            results.append(res)
     pool.close()
     pool.join()
 
-    # clip_df = []
     for res in results:
         try:
             row = res.get()
         except Exception as err:
             print(f"failed to get result due to error: {err}")
         else:
-            # clip_df.append(client_clip_df)
             rows.append(row)
     results_df = pd.concat(rows, ignore_index=True).reset_index(drop=True)
-    # clip_results_df = pd.concat(clip_df, ignore_index=True).reset_index(drop=True)
     print(results_df.to_string())
-    # print("\nFinal clip results df",clip_results_df.to_string())
     plot_exp(exp_args, results_df, exp_var_lsts, plot_avgs, suffix=suffix)
-    # plot_clip(clip_results_df)
 
 
 if __name__ == "__main__":

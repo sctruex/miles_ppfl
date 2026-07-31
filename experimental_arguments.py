@@ -4,7 +4,6 @@ from tensorflow.keras.optimizers.schedules import LearningRateSchedule  # type: 
 from tensorflow.keras.optimizers import Optimizer  # type: ignore
 from tensorflow_privacy import DPKerasSGDOptimizer as DPSGD
 from tensorflow_privacy import DPKerasAdamOptimizer as DPAdam
-# from model_utils.custom_dpsgd import CustomDPSGDOptimizer as CustomDPSGD
 from typing import Union
 from pandas import DataFrame as pandas_dataframe
 from data_utils.dataset import get_dataset
@@ -46,7 +45,7 @@ class ExperimentalArguments:
                  local_epochs: int = 1,
                  sampling_approach: str = "uniform",
                  dataset_name: str = "mnist",
-                 seed: int = 0,                             # NEW
+                 seed: int = 0,
                  server_model_params: dict = {
                      'optimizer': 'adam'
                  },
@@ -126,7 +125,6 @@ class ExperimentalArguments:
         self._additional_df_cols = additional_df_cols
         self.set_up_dataset()
 
-        # self._clip_schedule_fn = ExponentialClipDecay
         self._clip_schedule_fn = clip_scheduler
         self._clip_schedule_params = clip_schedule_params
         self._debug = debug
@@ -135,10 +133,7 @@ class ExperimentalArguments:
         (X_train, y_train), (X_test,
                              y_test), loss, metrics, class_metrics = get_dataset(self._args["dataset_name"], np_rng)
         self.collected_metrics = [metric.name for metric in metrics]
-        # results_df = pandas_dataframe(
-        #     columns=list(self._args["exp_var_map"].keys())+self._additional_df_cols+["loss"]+self.collected_metrics)
 
-        # self._args["results_df"] = results_df
         self._args["dataset"] = ((X_train, y_train), (X_test, y_test))
         self._args["loss"] = loss
         self._args["metrics"] = metrics

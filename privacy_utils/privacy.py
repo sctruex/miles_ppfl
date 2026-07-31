@@ -31,9 +31,6 @@ def generate_eps_lst(
 def find_eps(rounds, clients_per_round, total_clients, local_epochs, noise_multiplier, target_delta,
              batch_size, len_data, **_):
     expected_epochs = local_epochs*rounds*clients_per_round/total_clients
-    # event = make_event_from_param(rounds, q, noise_multiplier)
-    # accountant = dp_accounting.rdp.RdpAccountant()
-    # return accountant.compose(event).get_epsilon(target_delta)
     return compute_dp_sgd_privacy_lib._compute_dp_sgd_example_privacy(
         expected_epochs,
         noise_multiplier,
@@ -45,42 +42,11 @@ def find_eps(rounds, clients_per_round, total_clients, local_epochs, noise_multi
 
 
 def find_mult(eps, rounds, total_clients, clients_per_round, target_delta, MIN_MULT, MAX_MULT, **_):
-    # noise_multiplier = 1e-5         # some minimum
-    # step = .1           # search step
-    # # TO-DO: ????
     q = clients_per_round/total_clients
-    # event = make_event_from_param(rounds, q, noise_multiplier)
-    # accountant = dp_accounting.rdp.RdpAccountant()
-    # curr_spend =  accountant.compose(event).get_epsilon(target_delta)
-    # # ALTER TO BE BINARY SEARCH
-    # while curr_spend > epsilon:
-    #     print(f"currently spending {curr_spend} instead of {epsilon} with noise multiplier {noise_multiplier}")
-    #     noise_multiplier += step
-    #     event = make_event_from_param(rounds, q, noise_multiplier)
-    #     accountant = dp_accounting.rdp.RdpAccountant()
-    #     curr_spend =  accountant.compose(event).get_epsilon(target_delta)
-    # return noise_multiplier
     return find_mult_search(eps, rounds, q, target_delta, MIN_MULT, MAX_MULT)
 
 
-# def make_event_from_param(candidate_rounds, q, noise_multiplier):
-#     gaussian_event = dp_accounting.GaussianDpEvent(noise_multiplier)
-#     sampled_event = dp_accounting.PoissonSampledDpEvent(q, gaussian_event)
-#     composed_event = dp_accounting.SelfComposedDpEvent(
-#         sampled_event, candidate_rounds)
-#     return composed_event
-
-
 def find_avail_rounds(target_delta, rounds, local_epochs, noise_multiplier, batch_size, eps, q, client_data_len, **_):
-    # for r in range(1,rounds+1):
-    #     event = make_event_from_param(r, q, noise_multiplier)
-    #     accountant = dp_accounting.rdp.RdpAccountant()
-    #     eps_spend=accountant.compose(event).get_epsilon(target_delta)
-    #     print(f"participating in {r} rounds results in spend of {eps_spend} (target is {eps})")
-    #     if eps_spend > eps:
-    #         return r-1
-    # return rounds
-    # print(f"Beginning available client rounds search:")
     return find_rounds_search(target_delta=target_delta,
                               rounds=rounds,
                               local_epochs=local_epochs,
@@ -94,8 +60,7 @@ def find_avail_rounds(target_delta, rounds, local_epochs, noise_multiplier, batc
 def test_eps_gen(np_rng: Generator):
 
     runs = 30
-    eps_norm_scales = [i for i in range(6)]  # [.5, 2, 5]
-    # eps_loc = 10. # 5. 1.
+    eps_norm_scales = [i for i in range(6)] 
     loc = [10.]
     y_lim = [.5]
     len_data = 60000  # say mnist data
@@ -127,7 +92,6 @@ def test_eps_gen(np_rng: Generator):
                             f"low=-{int(4*eps_norm_scale +eps_loc)},high={int(4*eps_norm_scale+eps_loc)}")
                     else:
                         labels.append("?")
-                    # labels.append(f"scale={eps_loc}")
                     for i in range(runs):
                         if distribution == "normal":
                             eps_lst = np_rng.normal(
@@ -137,7 +101,6 @@ def test_eps_gen(np_rng: Generator):
                                 low=-4*eps_norm_scale + eps_loc, high=4*eps_norm_scale+eps_loc, size=num_clients)
                         else:
                             eps_lst = [eps_loc]*num_clients
-                        # eps_lst = exponential(scale=eps_loc,size=30)
 
                         eps_lst[eps_lst < min_eps] = min_eps
                         eps_lst.sort()
@@ -183,7 +146,6 @@ def test_eps_gen(np_rng: Generator):
                     final_scale_average.append(final_avg)
 
                 print(final_scale_average)
-                bottom, top = plt.ylim()
                 plt.ylim(top=y_limit)  # set y_limit
                 for i in range(len(final_scale_average)):
                     plt.plot(

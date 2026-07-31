@@ -1,21 +1,10 @@
-# import csv
 import numpy as np
 
 
 def get_csv_data(name: str, np_rng: np.random.Generator):
-    if name == 'schools':
-        split = .85
-        return parse_file("./data_utils/csv_datasets/schools/schools.csv", np_rng, split)
     if name == 'adult':
         split = .85
         return parse_file("./data_utils/csv_datasets/adult/adult.csv", np_rng, split, header_rows=1)
-    if name == 'gleam':
-        split = .85
-        (X_train, y_train), (X_test, y_test) = parse_file(
-            "./data_utils/csv_datasets/gleam/gleam.csv", np_rng, split, header_rows=1)
-        X_train = X_train[:, 2:]
-        X_test = X_test[:, 2:]
-        return (X_train, y_train), (X_test, y_test)
 
 
 def parse_file(path: str, np_rng: np.random.Generator, split: float, header_rows=0):

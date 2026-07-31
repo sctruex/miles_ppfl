@@ -14,8 +14,6 @@ class Server:
         self.client_lst = client_lst
         self.test_data = test_data
         self.model = model_architecture(np_rng)
-        # self.model.build((None,32, 32, 3))
-        # [[] for _ in range(len(model_params['metrics'])+1)]
         self.metrics = Server.set_up_metrics(
             model_params['metrics'], class_metrics)
         self.class_metrics = class_metrics
@@ -43,7 +41,6 @@ class Server:
         metrics = {'sparse_categorical_crossentropy': []}
         for metric in model_metrics:
             metrics[metric.name] = []
-        # metrics = {metric.name:[] for metric in model_metrics}
         if class_metrics:
             if "class_precision" in class_metrics:
                 num_classes = 10
@@ -60,17 +57,12 @@ class Server:
         return metrics
 
     def select_clients(self, np_rng: Generator):
-        # if self.accountant_params['bucket_approach'] == 1:
-        # NEW NON IID CODE
         bucket = np_rng.choice(self.accountant_params['num_buckets'])
         bucket_clients = self.client_lst[bucket]
         self.bucket_round_count[bucket] += 1
         return [bucket_clients[i]
                 for i in range(len(bucket_clients))
                 if np_rng.random() < bucket_clients[i].get_sample_prob()], self.bucket_round_count[bucket]
-        # return [self.client_lst[i]
-        #     for i in range(len(self.client_lst))
-        #     if rand() < self.client_lst[i].get_sample_prob()]
 
     def average_params(param_lst):
         avg_weights = [
@@ -99,10 +91,7 @@ class Server:
         self.rejections = []
         for r in range(num_rounds):
             print(f"Round {r+1} of {num_rounds}:")
-            # if self.accountant_params['bucket_approach'] == 1:
             sample_clients, bucket_round_count = self.select_clients(np_rng)
-            # else:
-            #     sample_clients = self.select_clients()
             curr_weights = self.model.get_weights()
 
             if self.accountant_params['clip_round_metric'] == 'client_rounds':
@@ -125,73 +114,25 @@ class Server:
                     f"Number of clients who rejected training request: {len(sample_clients)-len(param_lst)}")
                 self.rejections.append(len(sample_clients)-len(param_lst))
 
-            # param_lst = [curr_weights if p is None else p for p in param_lst]
             if len(param_lst) > 0:
-                # params = np_sum(param_lst,axis=0)/len(param_lst)
                 avg_params = Server.average_params(param_lst)
                 self.model.set_weights(avg_params)
                 self.eval_model()
 
-        #         tf.print("*"*200, output_stream="file://l2_norm_vals.txt")
-        # tf.print("-"*200, output_stream="file://l2_norm_vals.txt")
         self.fill_metrics_with_na(num_rounds)
-
-    # def train(self, num_rounds):
-
-    #     self.rejections = []
-    #     for r in range(num_rounds):
-    #         print(f"Round {r+1} of {num_rounds}:")
-    #         # sample_clients = self.select_fn(**self.select_params)
-    #         # sample_clients = self.select_clients()
-    #         sample_clients, bucket_round_count = self.select_clients()
-    #         curr_weights = self.model.get_weights()
-    #         # participating_clients = [
-    #         #     client for client in sample_clients if client.avail_train(r)]
-    #         participating_clients = [
-    #              client for client in sample_clients if client.avail_train(bucket_round_count)]
-    #         # param_lst = [client.train_round(curr_weights, r, len(
-    #         #     participating_clients), self._sim_smpc) for client in participating_clients]
-    #         param_lst = [client.train_round(curr_weights, bucket_round_count, len(
-    #             participating_clients), self._sim_smpc) for client in participating_clients]
-    #         param_lst = [p for p in param_lst if p is not None]
-    #         if len(sample_clients) > 0:
-    #             print(
-    #                 f"Number of clients who rejected training request: {len(sample_clients)-len(param_lst)}")
-    #             self.rejections.append(len(sample_clients)-len(param_lst))
-
-    #         # param_lst = [curr_weights if p is None else p for p in param_lst]
-    #         if len(param_lst) > 0:
-    #             # params = np_sum(param_lst,axis=0)/len(param_lst)
-    #             avg_params = Server.average_params(param_lst)
-    #             self.model.set_weights(avg_params)
-    #             self.eval_model()
-
-    #     #         tf.print("*"*200, output_stream="file://l2_norm_vals.txt")
-    #     # tf.print("-"*200, output_stream="file://l2_norm_vals.txt")
-    #     self.fill_metrics_with_na(num_rounds)
 
     def eval_model(self):
         x_test, y_test = self.test_data
         result = self.model.evaluate(x_test, y_test, verbose=0)
 
         print(f"Result: {result}\n")
-        # print("self metrics", self.metrics)
-        # print(len(self.metrics))
-        # print(len(result))
-        # for i in range(len(self.metrics)):
-        #     self.metrics[i].append(result[i])
         if "sparse_categorical_crossentropy" in self.metrics:
             self.metrics["sparse_categorical_crossentropy"].append(result[0])
         else:
             self.metrics["loss"].append(result[0])
 
-        # if "sparse_categorical_accuracy" in self.metrics:
-        #     self.metrics["sparse_categorical_accuracy"].append(result[1])
-        # else:
         for metric, i in zip(self.agg_metrics, range(len(self.agg_metrics))):
             self.metrics[metric].append(result[i+1])
-
-        # print("self metrics", self.metrics)
 
         if self.class_metrics:
             pred = self.model.predict(x_test)
@@ -250,18 +191,7 @@ class Server:
                     self.metrics[f"f1_score{i}"].append(f1_score[i])
             print("Metrics list", self.metrics)
 
-        # # ATTEMPT FOR NEW METRIC
-        # pred = self.model.predict(x_test)
-        # preds = [np.argmax(x) for x in pred]
-        # print("REPORT:", report(y_test, preds))
-
-        # # loss metric
-        # self.metrics[0].append(result[0])
-        # # accuracy metric
-        # self.metrics[1].append(result[1])
-
     def get_metrics(self):
-        # return self.metrics[0], self.metrics[1]
         return self.metrics
 
     def get_rejections(self):
@@ -269,7 +199,5 @@ class Server:
 
     def fill_metrics_with_na(self, num_rounds):
         for metric in self.metrics:
-            # metric.extend([NA]*(num_rounds-len(metric)))
-            # self.metrics[metric].extend([NA]*(num_rounds-len(metric)))
             self.metrics[metric].extend(
                 [NA]*(num_rounds-len(self.metrics[metric])))
