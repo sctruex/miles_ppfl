@@ -61,13 +61,8 @@ class Client:
         # currently not accounting for local epochs greater than 1 - may need to do curr_round x local epochs
         if curr_round >= self._avail_rounds:
             return None
-            # return params
-            # return None if rand() < 0.5 else params
 
-        # insert reduction of multiplier
-        # tf.keras.backend.set_value(self._noise_mult, self._raw_noise_mult/k)
         self.compile_model(curr_round=curr_round, k=k, sim_smpc=sim_smpc)
-        # print(f"noise_multplier at round {curr_round+1} is {self._opt._decayed_lr(tf.float32)}")
         self._client_model.set_weights(params)
         self._client_model.fit(
             self._client_x, self._client_y, **self._fit_params)
@@ -79,6 +74,4 @@ class Client:
         return r < self._avail_rounds
 
     def get_row(self):
-        # change self._client_label so that it is the actaul label
-        # will work otherwise
         return [self._client_labels, self._client_clip_lst]
