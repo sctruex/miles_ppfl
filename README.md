@@ -11,16 +11,7 @@ Miles is a customizable framework for systematic parameter analysis in practical
 
 ## Paper Reproduction
 
-| Paper result | Configuration |
-|---|---|
-| Fig. 2: Batch size | `paper_fig2_fmnist_batch.txt` |
-| Fig. 3: Clipping | `paper_fig3_clip.txt` |
-| Fig. 4: Dynamic clipping | `paper_fig4_clip_scheduler.txt` |
-| Table 4 | `paper_table4.txt` |
-| Fig. 5: Data heterogeneity | `paper_fig5_participation.txt` |
-| Fig. 6: Privacy heterogeneity | `paper_fig6_privacy_heterogeneity.txt` |
-
-Each configuration specifies the random seed and all experiment parameters.
+All text files necessary to reproduce paper results are included within the experimental_params folder. Each configuration specifies the random seed and all experiment parameters.
 
 ## Datasets
 
